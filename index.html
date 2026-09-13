@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,21 +15,25 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {
             md: {
-              primary: '#1976D2',      // Material Blue
-              primaryDark: '#1565C0',
-              primaryLight: '#E3F2FD',
-              surface: '#F8FAFC',
-              card: '#FFFFFF',
-              textPrimary: '#1E293B',
-              textSecondary: '#64748B',
-              success: '#2E7D32',
-              danger: '#D32F2F',
-              warning: '#ED6C02',
-              border: '#E2E8F0'
+              primary: '#60A5FA',       // Material Dark Blue Accent
+              primaryDark: '#2563EB',
+              primaryBg: '#1E3A8A',
+              surface: '#0B0F17',       // Background Deep Dark
+              card: '#131C2E',          // Card Surface Dark
+              cardInner: '#0D1424',     // Nested Element Dark
+              border: '#1E293B',        // Subtle Border
+              borderLight: '#334155',   // Focus / Hover Border
+              textPrimary: '#F1F5F9',   // High Contrast White
+              textSecondary: '#94A3B8', // Medium Contrast Gray
+              textMuted: '#64748B',
+              success: '#34D399',
+              danger: '#F87171',
+              warning: '#FBBF24',
             }
           },
           fontFamily: {
@@ -50,27 +54,29 @@
       -moz-appearance: textfield;
     }
     .elevation-1 {
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
     }
     .elevation-2 {
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3);
     }
   </style>
 </head>
-<body class="bg-md-surface text-md-textPrimary min-h-screen font-sans flex flex-col items-center">
+<body class="bg-md-surface text-md-textPrimary min-h-screen font-sans flex flex-col items-center antialiased selection:bg-blue-500/30 selection:text-blue-200">
 
-  <!-- ヘッダー（Material Top App Bar） -->
-  <header class="w-full bg-md-primary text-white elevation-2 sticky top-0 z-30">
+  <!-- ヘッダー（Material Top App Bar - Dark） -->
+  <header class="w-full bg-[#111827]/90 backdrop-blur-md border-b border-slate-800 text-white elevation-2 sticky top-0 z-30">
     <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
       <div class="flex items-center space-x-2.5">
-        <span class="material-symbols-outlined text-2xl">calculate</span>
+        <div class="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <span class="material-symbols-outlined text-xl">calculate</span>
+        </div>
         <div>
-          <h1 class="text-lg font-bold tracking-wide leading-tight">FiveM 強盗報酬計算機</h1>
-          <p class="text-xs text-blue-100 font-normal">強盗報酬・罰金・個人医費用の分配精算ツール</p>
+          <h1 class="text-base sm:text-lg font-bold tracking-wide leading-tight text-slate-100">FiveM 強盗報酬計算機</h1>
+          <p class="text-[11px] text-blue-300/80 font-normal">強盗報酬・罰金・個人医費用の分配精算ツール</p>
         </div>
       </div>
-      <button id="resetBtn" title="入力をリセット" class="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors flex items-center text-blue-100 hover:text-white">
-        <span class="material-symbols-outlined text-xl">restart_alt</span>
+      <button id="resetBtn" title="入力をリセット" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:scale-95 border border-slate-700 transition-all flex items-center text-slate-300 hover:text-white">
+        <span class="material-symbols-outlined text-lg">restart_alt</span>
       </button>
     </div>
   </header>
@@ -79,132 +85,132 @@
   <main class="w-full max-w-4xl px-4 py-6 space-y-6">
 
     <!-- バリデーション警告（動的表示） -->
-    <div id="validationWarning" class="hidden bg-amber-50 border-l-4 border-md-warning p-4 rounded-r-lg elevation-1 flex items-start space-x-3">
-      <span class="material-symbols-outlined text-md-warning">warning</span>
-      <div class="text-sm text-amber-900 font-medium" id="validationText"></div>
+    <div id="validationWarning" class="hidden bg-amber-950/40 border-l-4 border-amber-500 p-4 rounded-r-xl elevation-1 flex items-start space-x-3 border border-amber-800/40">
+      <span class="material-symbols-outlined text-amber-400">warning</span>
+      <div class="text-xs sm:text-sm text-amber-200 font-medium" id="validationText"></div>
     </div>
 
     <!-- 赤字警告（動的表示） -->
-    <div id="deficitAlert" class="hidden bg-red-50 border-l-4 border-md-danger p-4 rounded-r-lg elevation-1 flex items-start justify-between">
+    <div id="deficitAlert" class="hidden bg-red-950/40 border-l-4 border-red-500 p-4 rounded-r-xl elevation-1 flex items-start justify-between border border-red-800/40">
       <div class="flex items-start space-x-3">
-        <span class="material-symbols-outlined text-md-danger">error</span>
+        <span class="material-symbols-outlined text-red-400">error</span>
         <div>
-          <p class="text-sm font-bold text-red-900">赤字です（経費が総利益を超過）</p>
-          <p class="text-xs text-red-700 mt-0.5">報酬分配は0ドルとし、不足分（ギャングプール負担額）および実費補填額を表示しています。</p>
+          <p class="text-xs sm:text-sm font-bold text-red-200">赤字です（経費が総利益を超過）</p>
+          <p class="text-[11px] sm:text-xs text-red-300/80 mt-0.5">報酬分配は0ドルとし、不足分（ギャングプール負担額）および実費補填額を表示しています。</p>
         </div>
       </div>
-      <span id="deficitAmount" class="font-bold text-sm text-md-danger whitespace-nowrap bg-red-100 px-2.5 py-1 rounded-md"></span>
+      <span id="deficitAmount" class="font-bold text-xs sm:text-sm text-red-300 whitespace-nowrap bg-red-900/60 px-2.5 py-1 rounded-lg border border-red-700/60"></span>
     </div>
 
     <!-- 入力カード -->
-    <div class="bg-md-card rounded-2xl p-5 md:p-6 elevation-1 border border-md-border space-y-5">
-      <div class="flex items-center space-x-2 border-b border-md-border pb-3">
-        <span class="material-symbols-outlined text-md-primary">edit_note</span>
-        <h2 class="font-bold text-base text-md-textPrimary">強盗結果・経費の入力</h2>
+    <div class="bg-md-card rounded-2xl p-5 md:p-6 elevation-1 border border-slate-800 space-y-5">
+      <div class="flex items-center space-x-2 border-b border-slate-800/80 pb-3">
+        <span class="material-symbols-outlined text-blue-400">edit_note</span>
+        <h2 class="font-bold text-sm sm:text-base text-slate-100">強盗結果・経費の入力</h2>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
         <!-- 総利益 -->
         <div>
-          <label for="totalReward" class="block text-xs font-bold text-md-textSecondary mb-1.5 flex items-center justify-between">
-            <span>総利益 (報酬全額) <span class="text-red-500">*</span></span>
-            <span class="text-[11px] font-normal text-slate-400" id="formattedTotal"></span>
+          <label for="totalReward" class="block text-xs font-bold text-slate-400 mb-1.5 flex items-center justify-between">
+            <span>総利益 (報酬全額) <span class="text-red-400">*</span></span>
+            <span class="text-[11px] font-normal text-blue-400" id="formattedTotal"></span>
           </label>
-          <div class="relative rounded-lg shadow-sm">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-medium">$</span>
+          <div class="relative rounded-xl shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">$</span>
             <input type="number" id="totalReward" min="0" step="1000" placeholder="10000000"
-              class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+              class="w-full pl-8 pr-3 py-2.5 bg-md-cardInner border border-slate-700/80 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm font-semibold transition-all">
           </div>
         </div>
 
         <!-- 参加人数 -->
         <div>
-          <label for="memberCount" class="block text-xs font-bold text-md-textSecondary mb-1.5">
-            参加人数 (メンバー実数) <span class="text-red-500">*</span>
+          <label for="memberCount" class="block text-xs font-bold text-slate-400 mb-1.5">
+            参加人数 (メンバー実数) <span class="text-red-400">*</span>
           </label>
-          <div class="relative rounded-lg shadow-sm">
+          <div class="relative rounded-xl shadow-sm">
             <input type="number" id="memberCount" min="1" max="100" placeholder="5"
-              class="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
-            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">名 (+1プール)</span>
+              class="w-full pl-3 pr-16 py-2.5 bg-md-cardInner border border-slate-700/80 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm font-semibold transition-all">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs font-medium">名 (+1プール)</span>
           </div>
         </div>
 
         <!-- 捕まった人数 -->
         <div>
-          <label for="caughtCount" class="block text-xs font-bold text-md-textSecondary mb-1.5">
+          <label for="caughtCount" class="block text-xs font-bold text-slate-400 mb-1.5">
             捕まった人数 (罰金対象)
           </label>
-          <div class="relative rounded-lg shadow-sm">
+          <div class="relative rounded-xl shadow-sm">
             <input type="number" id="caughtCount" min="0" value="0"
-              class="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
-            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">名</span>
+              class="w-full pl-3 pr-10 py-2.5 bg-md-cardInner border border-slate-700/80 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm font-semibold transition-all">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs font-medium">名</span>
           </div>
         </div>
 
         <!-- 1人あたりの罰金金額 -->
         <div>
-          <label for="finePerPerson" class="block text-xs font-bold text-md-textSecondary mb-1.5 flex items-center justify-between">
+          <label for="finePerPerson" class="block text-xs font-bold text-slate-400 mb-1.5 flex items-center justify-between">
             <span>1人の罰金金額</span>
-            <span class="text-[11px] font-normal text-slate-400" id="formattedFine"></span>
+            <span class="text-[11px] font-normal text-amber-400" id="formattedFine"></span>
           </label>
-          <div class="relative rounded-lg shadow-sm">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-medium">$</span>
+          <div class="relative rounded-xl shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">$</span>
             <input type="number" id="finePerPerson" min="0" step="1000" placeholder="500000"
-              class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+              class="w-full pl-8 pr-3 py-2.5 bg-md-cardInner border border-slate-700/80 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm font-semibold transition-all">
           </div>
         </div>
 
         <!-- 個人医蘇生人数 -->
         <div>
-          <label for="reviveCount" class="block text-xs font-bold text-md-textSecondary mb-1.5">
+          <label for="reviveCount" class="block text-xs font-bold text-slate-400 mb-1.5">
             個人医に起こしてもらった人数
           </label>
-          <div class="relative rounded-lg shadow-sm">
+          <div class="relative rounded-xl shadow-sm">
             <input type="number" id="reviveCount" min="0" value="0"
-              class="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
-            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">名</span>
+              class="w-full pl-3 pr-10 py-2.5 bg-md-cardInner border border-slate-700/80 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm font-semibold transition-all">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs font-medium">名</span>
           </div>
         </div>
 
         <!-- 1人あたりの蘇生費用 -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label for="reviveFeePerPerson" class="text-xs font-bold text-md-textSecondary">
+            <label for="reviveFeePerPerson" class="text-xs font-bold text-slate-400">
               1人の蘇生費用 (個人医)
             </label>
             <!-- クイック入力チップ -->
             <div class="flex space-x-1.5">
-              <button type="button" class="preset-btn text-[11px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-md-primary hover:bg-blue-100 border border-blue-200 transition-colors" data-value="1000000">100万</button>
-              <button type="button" class="preset-btn text-[11px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-md-primary hover:bg-blue-100 border border-blue-200 transition-colors" data-value="3000000">300万</button>
+              <button type="button" class="preset-btn text-[11px] px-2.5 py-0.5 rounded-lg font-medium bg-blue-950/70 text-blue-300 hover:bg-blue-900 border border-blue-700/50 transition-all active:scale-95" data-value="1000000">100万</button>
+              <button type="button" class="preset-btn text-[11px] px-2.5 py-0.5 rounded-lg font-medium bg-blue-950/70 text-blue-300 hover:bg-blue-900 border border-blue-700/50 transition-all active:scale-95" data-value="3000000">300万</button>
             </div>
           </div>
-          <div class="relative rounded-lg shadow-sm">
-            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-medium">$</span>
+          <div class="relative rounded-xl shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-medium">$</span>
             <input type="number" id="reviveFeePerPerson" min="0" step="10000" placeholder="1000000"
-              class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+              class="w-full pl-8 pr-3 py-2.5 bg-md-cardInner border border-slate-700/80 text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-sm font-semibold transition-all">
           </div>
-          <p class="text-[11px] font-normal text-slate-400 mt-1 text-right" id="formattedRevive"></p>
+          <p class="text-[11px] font-normal text-sky-400 mt-1 text-right" id="formattedRevive"></p>
         </div>
       </div>
     </div>
 
     <!-- 収支サマリーバー -->
-    <div class="bg-slate-100 border border-slate-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center elevation-1">
-      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
-        <span class="block text-[11px] font-medium text-slate-500">総利益</span>
-        <span class="text-sm sm:text-base font-bold text-slate-800" id="summaryTotal">$0</span>
+    <div class="bg-md-card border border-slate-800 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center elevation-1">
+      <div class="bg-md-cardInner p-2.5 rounded-xl border border-slate-800">
+        <span class="block text-[11px] font-medium text-slate-400">総利益</span>
+        <span class="text-sm sm:text-base font-bold text-slate-100 tracking-tight" id="summaryTotal">$0</span>
       </div>
-      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
-        <span class="block text-[11px] font-medium text-slate-500">経費総額 (罰金+蘇生)</span>
-        <span class="text-sm sm:text-base font-bold text-red-600" id="summaryExpense">$0</span>
+      <div class="bg-md-cardInner p-2.5 rounded-xl border border-slate-800">
+        <span class="block text-[11px] font-medium text-slate-400">経費総額 (罰金+蘇生)</span>
+        <span class="text-sm sm:text-base font-bold text-red-400 tracking-tight" id="summaryExpense">$0</span>
       </div>
-      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
-        <span class="block text-[11px] font-medium text-slate-500">純利益</span>
-        <span class="text-sm sm:text-base font-bold text-emerald-600" id="summaryNet">$0</span>
+      <div class="bg-md-cardInner p-2.5 rounded-xl border border-slate-800">
+        <span class="block text-[11px] font-medium text-slate-400">純利益</span>
+        <span class="text-sm sm:text-base font-bold text-emerald-400 tracking-tight" id="summaryNet">$0</span>
       </div>
-      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
-        <span class="block text-[11px] font-medium text-slate-500">分配口数</span>
-        <span class="text-sm sm:text-base font-bold text-md-primary" id="summarySplits">0口</span>
+      <div class="bg-md-cardInner p-2.5 rounded-xl border border-slate-800">
+        <span class="block text-[11px] font-medium text-slate-400">分配口数</span>
+        <span class="text-sm sm:text-base font-bold text-blue-400 tracking-tight" id="summarySplits">0口</span>
       </div>
     </div>
 
@@ -212,31 +218,31 @@
     <div class="space-y-3.5">
       <div class="flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="material-symbols-outlined text-md-primary">payments</span>
-          <h2 class="font-bold text-base text-md-textPrimary">支給パターン（ワンクリックコピー）</h2>
+          <span class="material-symbols-outlined text-blue-400">payments</span>
+          <h2 class="font-bold text-sm sm:text-base text-slate-100">支給パターン（ワンクリックコピー）</h2>
         </div>
-        <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200">※1,000ドル未満切捨 / 余りはプールへ</span>
+        <span class="text-[11px] sm:text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-700">※1,000ドル未満切捨 / 余りはプールへ</span>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- 1. 通常配分（無事な人） -->
-        <div class="bg-md-card rounded-xl p-4 border border-md-border elevation-1 flex flex-col justify-between hover:border-blue-300 transition-all">
+        <div class="bg-md-card rounded-2xl p-4 border border-slate-800 elevation-1 flex flex-col justify-between hover:border-emerald-500/40 transition-all">
           <div>
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                <h3 class="font-bold text-sm text-slate-800">通常配分 (無事な人)</h3>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950"></span>
+                <h3 class="font-bold text-sm text-slate-200">通常配分 (無事な人)</h3>
               </div>
-              <span class="text-xs text-slate-500 font-medium" id="safeCountBadge">0名</span>
+              <span class="text-xs text-emerald-400 font-medium bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-md" id="safeCountBadge">0名</span>
             </div>
             <p class="text-xs text-slate-400 mt-1">1人あたりの基準配分額</p>
           </div>
-          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-100">
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-800/80">
             <div>
-              <span class="text-xs text-slate-400 block">渡す金額</span>
-              <span class="text-2xl font-black text-emerald-600 tracking-tight" id="dispSafeAmount">$0</span>
+              <span class="text-xs text-slate-500 block">渡す金額</span>
+              <span class="text-2xl font-black text-emerald-400 tracking-tight" id="dispSafeAmount">$0</span>
             </div>
-            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-blue-50 text-md-primary hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-blue-200"
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-emerald-950/50 text-emerald-300 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-emerald-700/60 active:scale-95"
               data-target="dispSafeAmount" title="数字のみコピー">
               <span class="material-symbols-outlined text-base">content_copy</span>
               <span>数字コピー</span>
@@ -245,23 +251,23 @@
         </div>
 
         <!-- 2. 罰金がある人 -->
-        <div class="bg-md-card rounded-xl p-4 border border-md-border elevation-1 flex flex-col justify-between hover:border-blue-300 transition-all">
+        <div class="bg-md-card rounded-2xl p-4 border border-slate-800 elevation-1 flex flex-col justify-between hover:border-amber-500/40 transition-all">
           <div>
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                <h3 class="font-bold text-sm text-slate-800">罰金がある人に渡す金額</h3>
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-amber-950"></span>
+                <h3 class="font-bold text-sm text-slate-200">罰金がある人に渡す金額</h3>
               </div>
-              <span class="text-xs text-slate-500 font-medium" id="caughtCountBadge">0名</span>
+              <span class="text-xs text-amber-400 font-medium bg-amber-950/60 border border-amber-800/50 px-2 py-0.5 rounded-md" id="caughtCountBadge">0名</span>
             </div>
             <p class="text-xs text-slate-400 mt-1">配分額 ＋ 罰金実費補填</p>
           </div>
-          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-100">
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-800/80">
             <div>
-              <span class="text-xs text-slate-400 block">渡す金額</span>
-              <span class="text-2xl font-black text-amber-600 tracking-tight" id="dispCaughtAmount">$0</span>
+              <span class="text-xs text-slate-500 block">渡す金額</span>
+              <span class="text-2xl font-black text-amber-400 tracking-tight" id="dispCaughtAmount">$0</span>
             </div>
-            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-blue-50 text-md-primary hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-blue-200"
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-amber-950/50 text-amber-300 hover:bg-amber-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-amber-700/60 active:scale-95"
               data-target="dispCaughtAmount" title="数字のみコピー">
               <span class="material-symbols-outlined text-base">content_copy</span>
               <span>数字コピー</span>
@@ -270,23 +276,23 @@
         </div>
 
         <!-- 3. 個人医蘇生の人 -->
-        <div class="bg-md-card rounded-xl p-4 border border-md-border elevation-1 flex flex-col justify-between hover:border-blue-300 transition-all">
+        <div class="bg-md-card rounded-2xl p-4 border border-slate-800 elevation-1 flex flex-col justify-between hover:border-sky-500/40 transition-all">
           <div>
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                <h3 class="font-bold text-sm text-slate-800">個人医蘇生の人に渡す金額</h3>
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-400 ring-2 ring-sky-950"></span>
+                <h3 class="font-bold text-sm text-slate-200">個人医蘇生の人に渡す金額</h3>
               </div>
-              <span class="text-xs text-slate-500 font-medium" id="reviveCountBadge">0名</span>
+              <span class="text-xs text-sky-400 font-medium bg-sky-950/60 border border-sky-800/50 px-2 py-0.5 rounded-md" id="reviveCountBadge">0名</span>
             </div>
             <p class="text-xs text-slate-400 mt-1">配分額 ＋ 蘇生費用実費補填</p>
           </div>
-          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-100">
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-800/80">
             <div>
-              <span class="text-xs text-slate-400 block">渡す金額</span>
-              <span class="text-2xl font-black text-blue-600 tracking-tight" id="dispReviveAmount">$0</span>
+              <span class="text-xs text-slate-500 block">渡す金額</span>
+              <span class="text-2xl font-black text-sky-400 tracking-tight" id="dispReviveAmount">$0</span>
             </div>
-            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-blue-50 text-md-primary hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-blue-200"
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-sky-950/50 text-sky-300 hover:bg-sky-600 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-sky-700/60 active:scale-95"
               data-target="dispReviveAmount" title="数字のみコピー">
               <span class="material-symbols-outlined text-base">content_copy</span>
               <span>数字コピー</span>
@@ -295,23 +301,23 @@
         </div>
 
         <!-- 4. ギャングプール（組織金庫） -->
-        <div class="bg-slate-900 text-white rounded-xl p-4 elevation-1 flex flex-col justify-between">
+        <div class="bg-gradient-to-br from-[#101726] to-[#1E1B4B] text-white rounded-2xl p-4 elevation-1 flex flex-col justify-between border border-indigo-900/60 hover:border-yellow-500/40 transition-all">
           <div>
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-2">
-                <span class="material-symbols-outlined text-yellow-400 text-sm">account_balance</span>
+                <span class="material-symbols-outlined text-yellow-400 text-base">account_balance</span>
                 <h3 class="font-bold text-sm text-slate-100">ギャングプール (組織金庫)</h3>
               </div>
-              <span class="text-xs text-yellow-300 font-medium bg-white/10 px-2 py-0.5 rounded" id="poolFractionBadge">+端数 $0</span>
+              <span class="text-xs text-yellow-300 font-medium bg-yellow-950/60 border border-yellow-800/50 px-2 py-0.5 rounded-md" id="poolFractionBadge">+端数 $0</span>
             </div>
-            <p class="text-xs text-slate-400 mt-1">1枠分 ＋ 1,000ドル未満の端数集約</p>
+            <p class="text-xs text-indigo-200/70 mt-1">1枠分 ＋ 1,000ドル未満の端数集約</p>
           </div>
-          <div class="mt-4 flex items-end justify-between pt-3 border-t border-white/10">
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-indigo-900/60">
             <div>
               <span class="text-xs text-slate-400 block">プール入金分</span>
               <span class="text-2xl font-black text-yellow-400 tracking-tight" id="dispPoolAmount">$0</span>
             </div>
-            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-white/10 text-white hover:bg-yellow-500 hover:text-slate-900 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-white/20"
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-yellow-950/50 text-yellow-300 hover:bg-yellow-500 hover:text-slate-950 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border border-yellow-700/60 active:scale-95"
               data-target="dispPoolAmount" title="数字のみコピー">
               <span class="material-symbols-outlined text-base">content_copy</span>
               <span>数字コピー</span>
@@ -322,14 +328,14 @@
     </div>
 
     <!-- Discord報告用一括テキスト -->
-    <div class="bg-md-card rounded-2xl p-5 md:p-6 elevation-1 border border-md-border space-y-3">
-      <div class="flex items-center justify-between border-b border-md-border pb-3">
+    <div class="bg-md-card rounded-2xl p-5 md:p-6 elevation-1 border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
         <div class="flex items-center space-x-2">
-          <span class="material-symbols-outlined text-indigo-600">forum</span>
-          <h2 class="font-bold text-base text-md-textPrimary">Discord報告用テキスト</h2>
+          <span class="material-symbols-outlined text-indigo-400">forum</span>
+          <h2 class="font-bold text-sm sm:text-base text-slate-100">Discord報告用テキスト</h2>
         </div>
         <button type="button" id="copyDiscordBtn"
-          class="flex items-center space-x-1.5 bg-md-primary hover:bg-md-primaryDark text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all active:scale-95">
+          class="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-bold shadow transition-all active:scale-95">
           <span class="material-symbols-outlined text-base">copy_all</span>
           <span>報告テキストを一括コピー</span>
         </button>
@@ -337,19 +343,19 @@
 
       <div class="relative">
         <textarea id="discordSummaryText" rows="9" readonly
-          class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3.5 rounded-lg border border-slate-700 focus:outline-none resize-none leading-relaxed select-all"></textarea>
+          class="w-full bg-[#070A10] text-emerald-400 font-mono text-xs p-3.5 rounded-xl border border-slate-800 focus:outline-none focus:border-blue-500/60 resize-none leading-relaxed select-all"></textarea>
       </div>
     </div>
 
   </main>
 
   <!-- フッター -->
-  <footer class="mt-auto w-full py-6 text-center text-xs text-slate-400">
+  <footer class="mt-auto w-full py-6 text-center text-xs text-slate-500">
     <p>FiveM Gang Heist Calculator &bull; GitHub Pages</p>
   </footer>
 
   <!-- コピートースト通知 -->
-  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-lg flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-200 pointer-events-none z-50">
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-800/95 border border-slate-700 text-slate-100 text-xs font-semibold px-4 py-2.5 rounded-xl shadow-2xl flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-200 pointer-events-none z-50">
     <span class="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
     <span id="toastMsg">クリップボードにコピーしました</span>
   </div>
@@ -453,7 +459,7 @@
         displays.deficitAlert.classList.remove('hidden');
         displays.deficitAmount.textContent = `赤字: -$${fmt(Math.abs(netProfit))}`;
         displays.summaryNet.textContent = `-$${fmt(Math.abs(netProfit))}`;
-        displays.summaryNet.className = 'text-sm sm:text-base font-bold text-red-600';
+        displays.summaryNet.className = 'text-sm sm:text-base font-bold text-red-400 tracking-tight';
 
         basePerPerson = 0;
         safePay = 0;
@@ -465,7 +471,7 @@
         // 通常黒字モード
         displays.deficitAlert.classList.add('hidden');
         displays.summaryNet.textContent = `$${fmt(netProfit)}`;
-        displays.summaryNet.className = 'text-sm sm:text-base font-bold text-emerald-600';
+        displays.summaryNet.className = 'text-sm sm:text-base font-bold text-emerald-400 tracking-tight';
 
         // 1人あたりの配分 = 1,000ドル未満切り捨て
         const rawPerPerson = Math.floor(netProfit / splitUnits);
