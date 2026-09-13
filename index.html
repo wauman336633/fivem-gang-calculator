@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FiveM 強盗報酬計算ツール</title>
+  <meta name="description" content="FiveM用ギャング強盗報酬計算機。総利益から罰金・個人医蘇生費用を差し引き、ギャングプールを含む各人への配分額をワンクリックでコピー可能。">
+  <!-- Google Fonts: Roboto & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Google Material Symbols -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            md: {
+              primary: '#1976D2',      // Material Blue
+              primaryDark: '#1565C0',
+              primaryLight: '#E3F2FD',
+              surface: '#F8FAFC',
+              card: '#FFFFFF',
+              textPrimary: '#1E293B',
+              textSecondary: '#64748B',
+              success: '#2E7D32',
+              danger: '#D32F2F',
+              warning: '#ED6C02',
+              border: '#E2E8F0'
+            }
+          },
+          fontFamily: {
+            sans: ['Roboto', 'Noto Sans JP', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* スピンボタン非表示 */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+    .elevation-1 {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .elevation-2 {
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+    }
+  </style>
+</head>
+<body class="bg-md-surface text-md-textPrimary min-h-screen font-sans flex flex-col items-center">
+
+  <!-- ヘッダー（Material Top App Bar） -->
+  <header class="w-full bg-md-primary text-white elevation-2 sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <span class="material-symbols-outlined text-2xl">calculate</span>
+        <div>
+          <h1 class="text-lg font-bold tracking-wide leading-tight">FiveM 強盗報酬計算機</h1>
+          <p class="text-xs text-blue-100 font-normal">強盗報酬・罰金・個人医費用の分配精算ツール</p>
+        </div>
+      </div>
+      <button id="resetBtn" title="入力をリセット" class="p-2 rounded-full hover:bg-white/10 active:bg-white/20 transition-colors flex items-center text-blue-100 hover:text-white">
+        <span class="material-symbols-outlined text-xl">restart_alt</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="w-full max-w-4xl px-4 py-6 space-y-6">
+
+    <!-- バリデーション警告（動的表示） -->
+    <div id="validationWarning" class="hidden bg-amber-50 border-l-4 border-md-warning p-4 rounded-r-lg elevation-1 flex items-start space-x-3">
+      <span class="material-symbols-outlined text-md-warning">warning</span>
+      <div class="text-sm text-amber-900 font-medium" id="validationText"></div>
+    </div>
+
+    <!-- 赤字警告（動的表示） -->
+    <div id="deficitAlert" class="hidden bg-red-50 border-l-4 border-md-danger p-4 rounded-r-lg elevation-1 flex items-start justify-between">
+      <div class="flex items-start space-x-3">
+        <span class="material-symbols-outlined text-md-danger">error</span>
+        <div>
+          <p class="text-sm font-bold text-red-900">赤字です（経費が総利益を超過）</p>
+          <p class="text-xs text-red-700 mt-0.5">報酬分配は0ドルとし、不足分（ギャングプール負担額）および実費補填額を表示しています。</p>
+        </div>
+      </div>
+      <span id="deficitAmount" class="font-bold text-sm text-md-danger whitespace-nowrap bg-red-100 px-2.5 py-1 rounded-md"></span>
+    </div>
+
+    <!-- 入力カード -->
+    <div class="bg-md-card rounded-2xl p-5 md:p-6 elevation-1 border border-md-border space-y-5">
+      <div class="flex items-center space-x-2 border-b border-md-border pb-3">
+        <span class="material-symbols-outlined text-md-primary">edit_note</span>
+        <h2 class="font-bold text-base text-md-textPrimary">強盗結果・経費の入力</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- 総利益 -->
+        <div>
+          <label for="totalReward" class="block text-xs font-bold text-md-textSecondary mb-1.5 flex items-center justify-between">
+            <span>総利益 (報酬全額) <span class="text-red-500">*</span></span>
+            <span class="text-[11px] font-normal text-slate-400" id="formattedTotal"></span>
+          </label>
+          <div class="relative rounded-lg shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-medium">$</span>
+            <input type="number" id="totalReward" min="0" step="1000" placeholder="10000000"
+              class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+          </div>
+        </div>
+
+        <!-- 参加人数 -->
+        <div>
+          <label for="memberCount" class="block text-xs font-bold text-md-textSecondary mb-1.5">
+            参加人数 (メンバー実数) <span class="text-red-500">*</span>
+          </label>
+          <div class="relative rounded-lg shadow-sm">
+            <input type="number" id="memberCount" min="1" max="100" placeholder="5"
+              class="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">名 (+1プール)</span>
+          </div>
+        </div>
+
+        <!-- 捕まった人数 -->
+        <div>
+          <label for="caughtCount" class="block text-xs font-bold text-md-textSecondary mb-1.5">
+            捕まった人数 (罰金対象)
+          </label>
+          <div class="relative rounded-lg shadow-sm">
+            <input type="number" id="caughtCount" min="0" value="0"
+              class="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">名</span>
+          </div>
+        </div>
+
+        <!-- 1人あたりの罰金金額 -->
+        <div>
+          <label for="finePerPerson" class="block text-xs font-bold text-md-textSecondary mb-1.5 flex items-center justify-between">
+            <span>1人の罰金金額</span>
+            <span class="text-[11px] font-normal text-slate-400" id="formattedFine"></span>
+          </label>
+          <div class="relative rounded-lg shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-medium">$</span>
+            <input type="number" id="finePerPerson" min="0" step="1000" placeholder="500000"
+              class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+          </div>
+        </div>
+
+        <!-- 個人医蘇生人数 -->
+        <div>
+          <label for="reviveCount" class="block text-xs font-bold text-md-textSecondary mb-1.5">
+            個人医に起こしてもらった人数
+          </label>
+          <div class="relative rounded-lg shadow-sm">
+            <input type="number" id="reviveCount" min="0" value="0"
+              class="w-full pl-3 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+            <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400 text-xs">名</span>
+          </div>
+        </div>
+
+        <!-- 1人あたりの蘇生費用 -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="reviveFeePerPerson" class="text-xs font-bold text-md-textSecondary">
+              1人の蘇生費用 (個人医)
+            </label>
+            <!-- クイック入力チップ -->
+            <div class="flex space-x-1.5">
+              <button type="button" class="preset-btn text-[11px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-md-primary hover:bg-blue-100 border border-blue-200 transition-colors" data-value="1000000">100万</button>
+              <button type="button" class="preset-btn text-[11px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-md-primary hover:bg-blue-100 border border-blue-200 transition-colors" data-value="3000000">300万</button>
+            </div>
+          </div>
+          <div class="relative rounded-lg shadow-sm">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-medium">$</span>
+            <input type="number" id="reviveFeePerPerson" min="0" step="10000" placeholder="1000000"
+              class="w-full pl-8 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-md-primary focus:border-md-primary text-sm font-semibold transition-all">
+          </div>
+          <p class="text-[11px] font-normal text-slate-400 mt-1 text-right" id="formattedRevive"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 収支サマリーバー -->
+    <div class="bg-slate-100 border border-slate-200 rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center elevation-1">
+      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
+        <span class="block text-[11px] font-medium text-slate-500">総利益</span>
+        <span class="text-sm sm:text-base font-bold text-slate-800" id="summaryTotal">$0</span>
+      </div>
+      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
+        <span class="block text-[11px] font-medium text-slate-500">経費総額 (罰金+蘇生)</span>
+        <span class="text-sm sm:text-base font-bold text-red-600" id="summaryExpense">$0</span>
+      </div>
+      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
+        <span class="block text-[11px] font-medium text-slate-500">純利益</span>
+        <span class="text-sm sm:text-base font-bold text-emerald-600" id="summaryNet">$0</span>
+      </div>
+      <div class="bg-white p-2.5 rounded-lg border border-slate-200">
+        <span class="block text-[11px] font-medium text-slate-500">分配口数</span>
+        <span class="text-sm sm:text-base font-bold text-md-primary" id="summarySplits">0口</span>
+      </div>
+    </div>
+
+    <!-- 支給金額パターン出力（メイン成果物） -->
+    <div class="space-y-3.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="material-symbols-outlined text-md-primary">payments</span>
+          <h2 class="font-bold text-base text-md-textPrimary">支給パターン（ワンクリックコピー）</h2>
+        </div>
+        <span class="text-xs text-slate-500 bg-white px-2.5 py-1 rounded-md border border-slate-200">※1,000ドル未満切捨 / 余りはプールへ</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 1. 通常配分（無事な人） -->
+        <div class="bg-md-card rounded-xl p-4 border border-md-border elevation-1 flex flex-col justify-between hover:border-blue-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <h3 class="font-bold text-sm text-slate-800">通常配分 (無事な人)</h3>
+              </div>
+              <span class="text-xs text-slate-500 font-medium" id="safeCountBadge">0名</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">1人あたりの基準配分額</p>
+          </div>
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-100">
+            <div>
+              <span class="text-xs text-slate-400 block">渡す金額</span>
+              <span class="text-2xl font-black text-emerald-600 tracking-tight" id="dispSafeAmount">$0</span>
+            </div>
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-blue-50 text-md-primary hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-blue-200"
+              data-target="dispSafeAmount" title="数字のみコピー">
+              <span class="material-symbols-outlined text-base">content_copy</span>
+              <span>数字コピー</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. 罰金がある人 -->
+        <div class="bg-md-card rounded-xl p-4 border border-md-border elevation-1 flex flex-col justify-between hover:border-blue-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <h3 class="font-bold text-sm text-slate-800">罰金がある人に渡す金額</h3>
+              </div>
+              <span class="text-xs text-slate-500 font-medium" id="caughtCountBadge">0名</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">配分額 ＋ 罰金実費補填</p>
+          </div>
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-100">
+            <div>
+              <span class="text-xs text-slate-400 block">渡す金額</span>
+              <span class="text-2xl font-black text-amber-600 tracking-tight" id="dispCaughtAmount">$0</span>
+            </div>
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-blue-50 text-md-primary hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-blue-200"
+              data-target="dispCaughtAmount" title="数字のみコピー">
+              <span class="material-symbols-outlined text-base">content_copy</span>
+              <span>数字コピー</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. 個人医蘇生の人 -->
+        <div class="bg-md-card rounded-xl p-4 border border-md-border elevation-1 flex flex-col justify-between hover:border-blue-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <h3 class="font-bold text-sm text-slate-800">個人医蘇生の人に渡す金額</h3>
+              </div>
+              <span class="text-xs text-slate-500 font-medium" id="reviveCountBadge">0名</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">配分額 ＋ 蘇生費用実費補填</p>
+          </div>
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-slate-100">
+            <div>
+              <span class="text-xs text-slate-400 block">渡す金額</span>
+              <span class="text-2xl font-black text-blue-600 tracking-tight" id="dispReviveAmount">$0</span>
+            </div>
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-blue-50 text-md-primary hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-blue-200"
+              data-target="dispReviveAmount" title="数字のみコピー">
+              <span class="material-symbols-outlined text-base">content_copy</span>
+              <span>数字コピー</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. ギャングプール（組織金庫） -->
+        <div class="bg-slate-900 text-white rounded-xl p-4 elevation-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <span class="material-symbols-outlined text-yellow-400 text-sm">account_balance</span>
+                <h3 class="font-bold text-sm text-slate-100">ギャングプール (組織金庫)</h3>
+              </div>
+              <span class="text-xs text-yellow-300 font-medium bg-white/10 px-2 py-0.5 rounded" id="poolFractionBadge">+端数 $0</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">1枠分 ＋ 1,000ドル未満の端数集約</p>
+          </div>
+          <div class="mt-4 flex items-end justify-between pt-3 border-t border-white/10">
+            <div>
+              <span class="text-xs text-slate-400 block">プール入金分</span>
+              <span class="text-2xl font-black text-yellow-400 tracking-tight" id="dispPoolAmount">$0</span>
+            </div>
+            <button type="button" class="copy-num-btn flex items-center space-x-1.5 bg-white/10 text-white hover:bg-yellow-500 hover:text-slate-900 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border border-white/20"
+              data-target="dispPoolAmount" title="数字のみコピー">
+              <span class="material-symbols-outlined text-base">content_copy</span>
+              <span>数字コピー</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discord報告用一括テキスト -->
+    <div class="bg-md-card rounded-2xl p-5 md:p-6 elevation-1 border border-md-border space-y-3">
+      <div class="flex items-center justify-between border-b border-md-border pb-3">
+        <div class="flex items-center space-x-2">
+          <span class="material-symbols-outlined text-indigo-600">forum</span>
+          <h2 class="font-bold text-base text-md-textPrimary">Discord報告用テキスト</h2>
+        </div>
+        <button type="button" id="copyDiscordBtn"
+          class="flex items-center space-x-1.5 bg-md-primary hover:bg-md-primaryDark text-white px-4 py-2 rounded-lg text-xs md:text-sm font-bold shadow transition-all active:scale-95">
+          <span class="material-symbols-outlined text-base">copy_all</span>
+          <span>報告テキストを一括コピー</span>
+        </button>
+      </div>
+
+      <div class="relative">
+        <textarea id="discordSummaryText" rows="9" readonly
+          class="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-3.5 rounded-lg border border-slate-700 focus:outline-none resize-none leading-relaxed select-all"></textarea>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="mt-auto w-full py-6 text-center text-xs text-slate-400">
+    <p>FiveM Gang Heist Calculator &bull; GitHub Pages</p>
+  </footer>
+
+  <!-- コピートースト通知 -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-lg flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-200 pointer-events-none z-50">
+    <span class="material-symbols-outlined text-emerald-400 text-base">check_circle</span>
+    <span id="toastMsg">クリップボードにコピーしました</span>
+  </div>
+
+  <script>
+    // --- 状態管理 & DOM参照 ---
+    const STORAGE_KEY_FINE = 'fivem_calc_fine';
+    const STORAGE_KEY_REVIVE = 'fivem_calc_revive';
+    const STORAGE_KEY_TOTAL = 'fivem_calc_total';
+    const STORAGE_KEY_MEMBERS = 'fivem_calc_members';
+
+    const inputs = {
+      totalReward: document.getElementById('totalReward'),
+      memberCount: document.getElementById('memberCount'),
+      caughtCount: document.getElementById('caughtCount'),
+      finePerPerson: document.getElementById('finePerPerson'),
+      reviveCount: document.getElementById('reviveCount'),
+      reviveFeePerPerson: document.getElementById('reviveFeePerPerson')
+    };
+
+    const displays = {
+      formattedTotal: document.getElementById('formattedTotal'),
+      formattedFine: document.getElementById('formattedFine'),
+      formattedRevive: document.getElementById('formattedRevive'),
+      validationWarning: document.getElementById('validationWarning'),
+      validationText: document.getElementById('validationText'),
+      deficitAlert: document.getElementById('deficitAlert'),
+      deficitAmount: document.getElementById('deficitAmount'),
+      summaryTotal: document.getElementById('summaryTotal'),
+      summaryExpense: document.getElementById('summaryExpense'),
+      summaryNet: document.getElementById('summaryNet'),
+      summarySplits: document.getElementById('summarySplits'),
+      safeCountBadge: document.getElementById('safeCountBadge'),
+      caughtCountBadge: document.getElementById('caughtCountBadge'),
+      reviveCountBadge: document.getElementById('reviveCountBadge'),
+      dispSafeAmount: document.getElementById('dispSafeAmount'),
+      dispCaughtAmount: document.getElementById('dispCaughtAmount'),
+      dispReviveAmount: document.getElementById('dispReviveAmount'),
+      dispPoolAmount: document.getElementById('dispPoolAmount'),
+      poolFractionBadge: document.getElementById('poolFractionBadge'),
+      discordSummaryText: document.getElementById('discordSummaryText'),
+      toast: document.getElementById('toast'),
+      toastMsg: document.getElementById('toastMsg')
+    };
+
+    // 数値フォーマットヘルパー
+    const fmt = (n) => Number(n || 0).toLocaleString();
+    const cleanNum = (str) => {
+      const v = String(str).replace(/[^\d-]/g, '');
+      return v ? parseInt(v, 10) : 0;
+    };
+
+    // --- 計算メインロジック ---
+    function recalculate() {
+      const totalReward = Math.max(0, parseInt(inputs.totalReward.value, 10) || 0);
+      const memberCount = Math.max(1, parseInt(inputs.memberCount.value, 10) || 1);
+      const caughtCount = Math.max(0, parseInt(inputs.caughtCount.value, 10) || 0);
+      const finePerPerson = Math.max(0, parseInt(inputs.finePerPerson.value, 10) || 0);
+      const reviveCount = Math.max(0, parseInt(inputs.reviveCount.value, 10) || 0);
+      const reviveFeePerPerson = Math.max(0, parseInt(inputs.reviveFeePerPerson.value, 10) || 0);
+
+      // 補助表示
+      displays.formattedTotal.textContent = totalReward > 0 ? `$${fmt(totalReward)}` : '';
+      displays.formattedFine.textContent = finePerPerson > 0 ? `$${fmt(finePerPerson)}` : '';
+      displays.formattedRevive.textContent = reviveFeePerPerson > 0 ? `$${fmt(reviveFeePerPerson)}` : '';
+
+      // 人数チェック
+      const problematicCount = (caughtCount + reviveCount) > memberCount;
+      if (problematicCount) {
+        displays.validationWarning.classList.remove('hidden');
+        displays.validationText.textContent = `捕まった人数 (${caughtCount}名) と蘇生人数 (${reviveCount}名) の合計が、参加人数 (${memberCount}名) を超えています。`;
+      } else {
+        displays.validationWarning.classList.add('hidden');
+      }
+
+      // 経費計算
+      const totalFine = finePerPerson * caughtCount;
+      const totalRevive = reviveFeePerPerson * reviveCount;
+      const totalExpense = totalFine + totalRevive;
+      const netProfit = totalReward - totalExpense;
+      const splitUnits = memberCount + 1; // メンバー + 1(プール)
+
+      const safeCount = Math.max(0, memberCount - caughtCount - reviveCount);
+
+      displays.safeCountBadge.textContent = `${safeCount}名`;
+      displays.caughtCountBadge.textContent = `${caughtCount}名`;
+      displays.reviveCountBadge.textContent = `${reviveCount}名`;
+      displays.summarySplits.textContent = `${splitUnits}口 (${memberCount}+1)`;
+      displays.summaryTotal.textContent = `$${fmt(totalReward)}`;
+      displays.summaryExpense.textContent = `$${fmt(totalExpense)}`;
+
+      let basePerPerson = 0;
+      let safePay = 0;
+      let caughtPay = 0;
+      let revivePay = 0;
+      let poolPay = 0;
+      let fraction = 0;
+
+      if (netProfit < 0) {
+        // 赤字モード
+        displays.deficitAlert.classList.remove('hidden');
+        displays.deficitAmount.textContent = `赤字: -$${fmt(Math.abs(netProfit))}`;
+        displays.summaryNet.textContent = `-$${fmt(Math.abs(netProfit))}`;
+        displays.summaryNet.className = 'text-sm sm:text-base font-bold text-red-600';
+
+        basePerPerson = 0;
+        safePay = 0;
+        caughtPay = finePerPerson; // 罰金実費のみ支給
+        revivePay = reviveFeePerPerson; // 蘇生費用実費のみ支給
+        poolPay = netProfit; // プールがマイナス補填負担
+        displays.poolFractionBadge.textContent = '赤字補填負担';
+      } else {
+        // 通常黒字モード
+        displays.deficitAlert.classList.add('hidden');
+        displays.summaryNet.textContent = `$${fmt(netProfit)}`;
+        displays.summaryNet.className = 'text-sm sm:text-base font-bold text-emerald-600';
+
+        // 1人あたりの配分 = 1,000ドル未満切り捨て
+        const rawPerPerson = Math.floor(netProfit / splitUnits);
+        basePerPerson = Math.floor(rawPerPerson / 1000) * 1000;
+
+        safePay = basePerPerson;
+        caughtPay = basePerPerson + finePerPerson;
+        revivePay = basePerPerson + reviveFeePerPerson;
+
+        // ギャングプール = 純利益 - (メンバー全員の通常配分総額)
+        // これにより、余り・端数が1ドルも狂わずプールに合算される
+        poolPay = netProfit - (basePerPerson * memberCount);
+        fraction = poolPay - basePerPerson;
+        displays.poolFractionBadge.textContent = fraction > 0 ? `+端数 $${fmt(fraction)}` : '+端数 $0';
+      }
+
+      // 金額表示
+      displays.dispSafeAmount.textContent = `$${fmt(safePay)}`;
+      displays.dispCaughtAmount.textContent = `$${fmt(caughtPay)}`;
+      displays.dispReviveAmount.textContent = `$${fmt(revivePay)}`;
+      displays.dispPoolAmount.textContent = `$${fmt(poolPay)}`;
+
+      // Discord報告用テンプレート生成
+      generateDiscordSummary({
+        totalReward,
+        memberCount,
+        caughtCount,
+        finePerPerson,
+        reviveCount,
+        reviveFeePerPerson,
+        totalExpense,
+        netProfit,
+        splitUnits,
+        safeCount,
+        safePay,
+        caughtPay,
+        revivePay,
+        poolPay,
+        fraction
+      });
+
+      // ローカルストレージに保存
+      savePreferences();
+    }
+
+    // --- Discord報告テキスト作成 ---
+    function generateDiscordSummary(data) {
+      const isDeficit = data.netProfit < 0;
+      let text = `【強盗精算レポート】\n`;
+      text += `━━━━━━━━━━━━━━━━━━\n`;
+      text += `💰 総利益: $${fmt(data.totalReward)}\n`;
+      text += `👥 参加人数: ${data.memberCount}名 (+ギャングプール1枠)\n`;
+      if (data.caughtCount > 0) {
+        text += `🚔 逮捕者: ${data.caughtCount}名 (罰金: 1人$${fmt(data.finePerPerson)})\n`;
+      }
+      if (data.reviveCount > 0) {
+        text += `🚑 蘇生者: ${data.reviveCount}名 (費用: 1人$${fmt(data.reviveFeePerPerson)})\n`;
+      }
+      text += `📉 経費総額: $${fmt(data.totalExpense)}\n`;
+      text += isDeficit 
+        ? `⚠️ 収支: 赤字 (-$${fmt(Math.abs(data.netProfit))})\n`
+        : `✨ 純利益: $${fmt(data.netProfit)}\n`;
+      text += `━━━━━━━━━━━━━━━━━━\n`;
+      text += `【支給金額一覧】\n`;
+      text += `🟢 無事な人 (${data.safeCount}名): $${fmt(data.safePay)} /人\n`;
+      if (data.caughtCount > 0) {
+        text += `🚔 罰金者 (${data.caughtCount}名): $${fmt(data.caughtPay)} /人 (配分$${fmt(data.safePay)} + 罰金$${fmt(data.finePerPerson)})\n`;
+      }
+      if (data.reviveCount > 0) {
+        text += `🚑 蘇生者 (${data.reviveCount}名): $${fmt(data.revivePay)} /人 (配分$${fmt(data.safePay)} + 蘇生費$${fmt(data.reviveFeePerPerson)})\n`;
+      }
+      text += isDeficit
+        ? `🏦 ギャングプール: -$${fmt(Math.abs(data.poolPay))} (不足補填)\n`
+        : `🏦 ギャングプール: $${fmt(data.poolPay)} (基本配分$${fmt(data.safePay)} + 端数$${fmt(data.fraction)})\n`;
+      text += `━━━━━━━━━━━━━━━━━━\n`;
+      text += `※1,000ドル未満切り捨て。余りはギャングプールに加算されます。`;
+
+      displays.discordSummaryText.value = text;
+    }
+
+    // --- トースト表示 ---
+    let toastTimeout = null;
+    function showToast(msg) {
+      displays.toastMsg.textContent = msg;
+      displays.toast.classList.remove('translate-y-20', 'opacity-0');
+      displays.toast.classList.add('translate-y-0', 'opacity-100');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        displays.toast.classList.remove('translate-y-0', 'opacity-100');
+        displays.toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2000);
+    }
+
+    // --- クリップボードコピー ---
+    async function copyToClipboard(text, successMsg) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(successMsg);
+      } catch (err) {
+        // フォールバック
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast(successMsg);
+      }
+    }
+
+    // --- 設定保存・読込 ---
+    function savePreferences() {
+      localStorage.setItem(STORAGE_KEY_FINE, inputs.finePerPerson.value || '');
+      localStorage.setItem(STORAGE_KEY_REVIVE, inputs.reviveFeePerPerson.value || '');
+      localStorage.setItem(STORAGE_KEY_TOTAL, inputs.totalReward.value || '');
+      localStorage.setItem(STORAGE_KEY_MEMBERS, inputs.memberCount.value || '');
+    }
+
+    function loadPreferences() {
+      const savedFine = localStorage.getItem(STORAGE_KEY_FINE);
+      const savedRevive = localStorage.getItem(STORAGE_KEY_REVIVE);
+      const savedTotal = localStorage.getItem(STORAGE_KEY_TOTAL);
+      const savedMembers = localStorage.getItem(STORAGE_KEY_MEMBERS);
+
+      if (savedFine !== null) inputs.finePerPerson.value = savedFine;
+      if (savedRevive !== null) inputs.reviveFeePerPerson.value = savedRevive;
+      if (savedTotal !== null) inputs.totalReward.value = savedTotal;
+      if (savedMembers !== null) inputs.memberCount.value = savedMembers;
+
+      // 初期値デフォルト設定
+      if (!inputs.totalReward.value) inputs.totalReward.value = '10000000';
+      if (!inputs.memberCount.value) inputs.memberCount.value = '5';
+      if (!inputs.reviveFeePerPerson.value) inputs.reviveFeePerPerson.value = '1000000';
+      if (!inputs.finePerPerson.value) inputs.finePerPerson.value = '500000';
+    }
+
+    // --- イベントリスナー初期化 ---
+    function initEvents() {
+      // 各入力欄のリアルタイム再計算
+      Object.values(inputs).forEach(input => {
+        input.addEventListener('input', recalculate);
+      });
+
+      // 個人医プリセットボタン
+      document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          inputs.reviveFeePerPerson.value = btn.dataset.value;
+          recalculate();
+          showToast(`蘇生費用を $${fmt(btn.dataset.value)} に設定しました`);
+        });
+      });
+
+      // 数字のみコピーボタン
+      document.querySelectorAll('.copy-num-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.dataset.target;
+          const el = document.getElementById(targetId);
+          if (el) {
+            const rawNumber = cleanNum(el.textContent);
+            copyToClipboard(String(rawNumber), `金額「${fmt(rawNumber)}」をコピーしました`);
+          }
+        });
+      });
+
+      // Discord一括コピーボタン
+      document.getElementById('copyDiscordBtn').addEventListener('click', () => {
+        copyToClipboard(displays.discordSummaryText.value, 'Discord報告テキストを一括コピーしました');
+      });
+
+      // リセットボタン
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        inputs.totalReward.value = '10000000';
+        inputs.memberCount.value = '5';
+        inputs.caughtCount.value = '0';
+        inputs.finePerPerson.value = '500000';
+        inputs.reviveCount.value = '0';
+        inputs.reviveFeePerPerson.value = '1000000';
+        recalculate();
+        showToast('入力を初期値にリセットしました');
+      });
+    }
+
+    // 起動
+    window.addEventListener('DOMContentLoaded', () => {
+      loadPreferences();
+      initEvents();
+      recalculate();
+    });
+  </script>
+</body>
+</html>
